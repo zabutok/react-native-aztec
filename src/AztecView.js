@@ -78,6 +78,14 @@ class AztecView extends Component {
 		this.dispatch( AztecManager.Commands.returnHTMLWithCursor );
 	}
 
+	toggleFormat = (format) => {
+		UIManager.dispatchViewManagerCommand(
+			ReactNative.findNodeHandle(this.aztecViewRef.current),
+			AztecManager.Commands.toggleFormat,
+			[format],
+		);
+	}
+
 	_onContentSizeChange( event ) {
 		if ( ! this.props.onContentSizeChange ) {
 			return;

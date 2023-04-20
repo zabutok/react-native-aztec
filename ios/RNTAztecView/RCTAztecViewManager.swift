@@ -66,14 +66,20 @@ public class RCTAztecViewManager: RCTViewManager {
         defaultStyle.textListParagraphSpacingBefore = 5
         return defaultStyle
     }
-    
+
     @objc
     func focus(_ viewTag: NSNumber) -> Void {
         self.executeBlock(viewTag: viewTag) { (aztecView) in
             aztecView.reactFocus()
         }
     }
-    
+
+    @objc func toggleFormat(_ viewTag: NSNumber, format: NSString) -> Void {
+        self.executeBlock(viewTag: viewTag) { (aztecView) in
+            aztecView.toggleSelectedFormat(format: format as String)
+        }
+    }
+
     @objc
     func blur(_ viewTag: NSNumber) -> Void {
         self.executeBlock(viewTag: viewTag) { (aztecView) in

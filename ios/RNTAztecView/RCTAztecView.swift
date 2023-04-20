@@ -735,6 +735,20 @@ class RCTAztecView: Aztec.TextView {
         }
     }
 
+    @objc func toggleSelectedFormat(format: String) {
+        let range = selectedRange
+        let emptyRange = NSRange(location: selectedRange.location, length: 0)
+        switch format {
+            case "bold": toggleBold(range: range)
+            case "italic": toggleItalic(range: range)
+            case "strikethrough": toggleStrikethrough(range: range)
+            case "mark": toggleMark(range: range)
+            case "hr": replaceWithHorizontalRuler(at: emptyRange)
+            default: print("Format not recognized")
+        }
+    }
+
+
     // MARK: - Event Propagation
 
     func propagateContentChanges() {
