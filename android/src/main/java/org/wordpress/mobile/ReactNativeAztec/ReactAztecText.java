@@ -36,8 +36,11 @@ import org.wordpress.aztec.AlignmentRendering;
 import org.wordpress.aztec.AztecText;
 import org.wordpress.aztec.AztecTextFormat;
 import org.wordpress.aztec.ITextFormat;
+import org.wordpress.aztec.formatting.InlineFormatter;
+import org.wordpress.aztec.formatting.LineBlockFormatter;
 import org.wordpress.aztec.plugins.IAztecPlugin;
 import org.wordpress.aztec.plugins.IToolbarButton;
+import org.wordpress.aztec.toolbar.ToolbarAction;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -61,6 +64,9 @@ public class ReactAztecText extends AztecText {
     // Whenever android requests focus (which it does for random reasons), it will be ignored.
     private boolean mIsJSSettingFocus = false;
     private @Nullable ArrayList<TextWatcher> mListeners;
+    private @Nullable InlineFormatter inlineFormatter;
+
+    private @Nullable LineBlockFormatter lineBlockFormatter;
     private @Nullable TextWatcherDelegator mTextWatcherDelegator;
     private @Nullable ContentSizeWatcher mContentSizeWatcher;
     private @Nullable ScrollWatcher mScrollWatcher;
@@ -95,6 +101,7 @@ public class ReactAztecText extends AztecText {
             put(AztecTextFormat.FORMAT_STRIKETHROUGH, "strikethrough");
             put(AztecTextFormat.FORMAT_UNDERLINE, "underline");
             put(AztecTextFormat.FORMAT_MARK, "mark");
+            put(AztecTextFormat.FORMAT_HORIZONTAL_RULE, "hr");
         }
     };
 
@@ -133,9 +140,19 @@ public class ReactAztecText extends AztecText {
                 return false;
             }
         });
-
+        TypedArray styles = reactContext.obtainStyledAttributes(R.styleable.AztecText);
+//        inlineFormatter = new InlineFormatter(this,
+//                new InlineFormatter.CodeStyle(
+//                        styles.getColor(R.styleable.AztecText_codeBackground, 0),
+//                        styles.getFraction(R.styleable.AztecText_codeBackgroundAlpha, 1, 1, 0f),
+//                        styles.getColor(R.styleable.AztecText_codeColor, 0)));
+        inlineFormatter = new InlineFormatter(this, new InlineFormatter.CodeStyle(
+                styles.getColor(R.styleable.AztecText_codeBackground, 0),
+                styles.getFraction(R.styleable.AztecText_codeBackgroundAlpha, 1, 1, 0f),
+                styles.getColor(R.styleable.AztecText_codeColor, 0)), new InlineFormatter.HighlightStyle(styles.getResourceId(R.styleable.AztecText_highlightColor, R.color.grey_lighten_10)));
         mInputMethodManager = (InputMethodManager)
                 Assertions.assertNotNull(getContext().getSystemService(Context.INPUT_METHOD_SERVICE));
+        lineBlockFormatter = new LineBlockFormatter(this);
         this.setOnSelectionChangedListener(new OnSelectionChangedListener() {
             @Override
             public void onSelectionChanged(int selStart, int selEnd) {
@@ -154,6 +171,59 @@ public class ReactAztecText extends AztecText {
                                    }
                                }
         );
+    }
+
+    void toggleFormat(String textFormat) {
+        String name = AztecTextFormat.FORMAT_HORIZONTAL_RULE.getName();
+        history.beforeTextChanged(this);
+
+        switch (AztecTextFormat.valueOf(textFormat)) {
+            case FORMAT_PARAGRAPH:
+            case FORMAT_HEADING_1:
+            case FORMAT_HEADING_2:
+            case FORMAT_HEADING_3:
+            case FORMAT_HEADING_4:
+            case FORMAT_HEADING_5:
+            case FORMAT_HEADING_6:
+                blockFormatter.toggleHeading(AztecTextFormat.valueOf(textFormat));
+                break;
+            case FORMAT_ITALIC:
+            case FORMAT_EMPHASIS:
+            case FORMAT_CITE:
+            case FORMAT_UNDERLINE:
+            case FORMAT_STRIKETHROUGH:
+            case FORMAT_CODE:
+                inlineFormatter.toggle(AztecTextFormat.valueOf(textFormat));
+                break;
+            case FORMAT_BOLD:
+            case FORMAT_STRONG:
+                inlineFormatter.toggle(AztecTextFormat.valueOf(textFormat));
+                break;
+            case FORMAT_UNORDERED_LIST:
+                blockFormatter.toggleUnorderedList();
+                break;
+//            case AztecTextFormat.FORMAT_TASK_LIST:
+//                blockFormatter.toggleTaskList();
+//                break;
+            case FORMAT_ORDERED_LIST:
+                blockFormatter.toggleOrderedList();
+                break;
+            case FORMAT_ALIGN_LEFT:
+            case FORMAT_ALIGN_CENTER:
+//            case AztecTextFormat.FORMAT_ALIGN_RIGHT:
+//                return blockFormatter.toggleTextAlignment(textFormat);
+//            case AztecTextFormat.FORMAT_PREFORMAT:
+//                blockFormatter.togglePreformat();
+//                break;
+            case FORMAT_QUOTE:
+                blockFormatter.toggleQuote();
+                break;
+            case FORMAT_HORIZONTAL_RULE:
+                lineBlockFormatter.applyHorizontalRule(true);
+                break;
+        }
+
+//        contentChangeWatcher.notifyContentChanged()
     }
 
     private void forceCaretAtStartOnTakeFocus() {
@@ -552,6 +622,9 @@ public class ReactAztecText extends AztecText {
                     newFormatsSet.add(AztecTextFormat.FORMAT_UNDERLINE);
                 case "mark":
                     newFormatsSet.add(AztecTextFormat.FORMAT_MARK);
+                    break;
+                case "hr":
+                    newFormatsSet.add(AztecTextFormat.FORMAT_HORIZONTAL_RULE);
                     break;
             }
         }

@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import {
+import ReactNative, {
 	requireNativeComponent,
 	UIManager,
 	TouchableWithoutFeedback,

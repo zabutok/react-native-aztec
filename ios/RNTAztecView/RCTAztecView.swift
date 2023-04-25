@@ -3,7 +3,7 @@ import CoreServices
 import Foundation
 import UIKit
 
-class RCTAztecView: Aztec.TextView {
+class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
     @objc var onBackspace: RCTBubblingEventBlock? = nil
     @objc var onChange: RCTBubblingEventBlock? = nil
     @objc var onKeyDown: RCTBubblingEventBlock? = nil
@@ -775,11 +775,7 @@ class RCTAztecView: Aztec.TextView {
         }
         selectedTextRange = self.textRange(from: beginningOfDocument, to: beginningOfDocument)
     }
-}
-
-// MARK: UITextView Delegate Methods
-extension RCTAztecView: UITextViewDelegate {
-
+    
     func textViewDidChangeSelection(_ textView: UITextView) {
         guard isFirstResponder, isInsertingDictationResult == false else {
             return
@@ -816,3 +812,43 @@ extension RCTAztecView: UITextViewDelegate {
         onBlur?(text)
     }
 }
+
+// MARK: UITextView Delegate Methods
+//extension RCTAztecView: UITextViewDelegate {
+//
+//    func textViewDidChangeSelection(_ textView: UITextView) {
+//        guard isFirstResponder, isInsertingDictationResult == false else {
+//            return
+//        }
+//
+//        correctSelectionAfterLastEmptyLine()
+//        propagateSelectionChanges()
+//    }
+//
+//    func textViewDidBeginEditing(_ textView: UITextView) {
+//        correctSelectionAfterLastEmptyLine()
+//    }
+//
+//    func textViewDidChange(_ textView: UITextView) {
+//        guard isInsertingDictationResult == false else {
+//            return
+//        }
+//
+//        propagateContentChanges()
+//        updatePlaceholderVisibility()
+//        //Necessary to send height information to JS after pasting text.
+//        textView.setNeedsLayout()
+//    }
+//
+//    override func becomeFirstResponder() -> Bool {
+//        if !isFirstResponder && canBecomeFirstResponder {
+//            onFocus?([:])
+//        }
+//        return super.becomeFirstResponder()
+//    }
+//
+//    func textViewDidEndEditing(_ textView: UITextView) {
+//        let text = packForRN(cleanHTML(), withName: "text")
+//        onBlur?(text)
+//    }
+//}

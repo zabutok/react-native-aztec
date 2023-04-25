@@ -70,6 +70,8 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
 
     private static final int FOCUS_TEXT_INPUT = 1;
     private static final int BLUR_TEXT_INPUT = 2;
+
+    private static final int TOGGLE_TEXT_INPUT_FORMAT = 3;
     private static final int UNSET = -1;
 
     // we define the same codes in ReactAztecText as they have for ReactNative's TextInput, so
@@ -77,6 +79,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
     // see https://github.com/wordpress-mobile/react-native-aztec/pull/79
     private int mFocusTextInputCommandCode = FOCUS_TEXT_INPUT; // pre-init
     private int mBlurTextInputCommandCode = BLUR_TEXT_INPUT; // pre-init
+    private int toggleCommandCode = TOGGLE_TEXT_INPUT_FORMAT; // pre-init
 
     private static final String TAG = "ReactAztecText";
 
@@ -572,6 +575,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
             // we need to restart the editor now
             String content = view.toHtml(view.getText(), false);
             view.fromHtml(content, false);
+            view.getToolbar().toggleEditorMode();
         }
     }
 
@@ -633,11 +637,28 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
         return MapBuilder.<String, Integer>builder()
                 .put("focusTextInput", mFocusTextInputCommandCode)
                 .put("blurTextInput", mBlurTextInputCommandCode)
+                .put("toggleFormat", toggleCommandCode)
                 .build();
     }
 
     @Override
+    public void receiveCommand(final ReactAztecText parent, int commandType, @Nullable ReadableArray args) {
+        switch (commandType) {
+            case TOGGLE_TEXT_INPUT_FORMAT: {
+                parent.toggleFormat(args.getString(0));
+                return;
+            }
+
+            default:
+                throw new IllegalArgumentException(String.format(
+                        "Unsupported command %d received by %s.",
+                        commandType,
+                        getClass().getSimpleName()));
+        }
+    }
+    @Override
     public void receiveCommand(final ReactAztecText parent, String commandType, @Nullable ReadableArray args) {
+
         Assertions.assertNotNull(parent);
         if (commandType.equals("focus")) {
             // schedule a request to focus in the next layout, to fix https://github.com/wordpress-mobile/gutenberg-mobile/issues/1870
@@ -650,6 +671,9 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
             return;
         } else if (commandType.equals("blur")) {
             parent.clearFocusFromJS();
+            return;
+        } else if (commandType.equals(toggleCommandCode)) {
+            parent.toggleFormat(args.getString(0));
             return;
         }
         super.receiveCommand(parent, commandType, args);

@@ -37,6 +37,6 @@ RCT_REMAP_VIEW_PROPERTY(selectionColor, tintColor, UIColor)
 
 RCT_EXTERN_METHOD(focus:(nonnull NSNumber *)viewTag)
 RCT_EXTERN_METHOD(blur:(nonnull NSNumber *)viewTag)
-
+RCT_EXTERN_METHOD(toggleFormat:(nonnull NSNumber *)viewTag format: NSString)
 
 @end
