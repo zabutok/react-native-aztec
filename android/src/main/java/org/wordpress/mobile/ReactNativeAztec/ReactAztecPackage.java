@@ -20,6 +20,10 @@ public class ReactAztecPackage implements ReactPackage {
         this.exceptionLogger = exceptionLogger;
         this.breadcrumbLogger = breadcrumbLogger;
     }
+    public ReactAztecPackage() {
+        this.exceptionLogger = null;
+        this.breadcrumbLogger = null;
+    }
 
     @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
