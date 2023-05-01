@@ -643,6 +643,14 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
 
     @Override
     public void receiveCommand(final ReactAztecText parent, int commandType, @Nullable ReadableArray args) {
+        if(args.getString(0).equals("undo")) {
+            parent.history.undo(parent);
+            return;
+        }
+        if(args.getString(0).equals("redo")) {
+            parent.history.redo(parent);
+            return;
+        }
         switch (commandType) {
             case TOGGLE_TEXT_INPUT_FORMAT: {
                 parent.toggleFormat(args.getString(0));

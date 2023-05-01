@@ -250,7 +250,7 @@ class AztecView extends Component {
 	}
 
 	render() {
-		const { onActiveFormatsChange, ...otherProps } = this.props;
+		const { ...otherProps } = this.props;
 		// `style` has to be destructured separately, without `otherProps`, because of:
 		// https://github.com/WordPress/gutenberg/issues/23611
 		const { style } = this.props;

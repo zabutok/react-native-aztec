@@ -13,6 +13,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
     @objc var onPaste: RCTBubblingEventBlock? = nil
     @objc var onContentSizeChange: RCTBubblingEventBlock? = nil
     @objc var onSelectionChange: RCTBubblingEventBlock? = nil
+    @objc var onActiveFormatsChange: RCTBubblingEventBlock? = nil
     @objc var minWidth: CGFloat = 0
     @objc var maxWidth: CGFloat = 0
     @objc var triggerKeyCodes: NSArray?
@@ -743,7 +744,17 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
             case "italic": toggleItalic(range: range)
             case "strikethrough": toggleStrikethrough(range: range)
             case "mark": toggleMark(range: range)
-            case "hr": replaceWithHorizontalRuler(at: emptyRange)
+            //todo: need found better place for history manager
+            case "undo": do {
+                self.undoManager?.undo()
+            }
+            case "redo": do {
+                self.undoManager?.redo()
+            }
+            case "hr": do {
+              replaceWithHorizontalRuler(at: emptyRange)
+              insertText(" ")
+            }
             default: print("Format not recognized")
         }
     }
@@ -757,7 +768,19 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
             onChange(text)
         }
     }
-
+    func propagateFormatChanges() {
+        guard let onActiveFormatsChange = onActiveFormatsChange else {
+            return
+        }
+        let identifiers: Set<FormattingIdentifier>
+        if selectedRange.length > 0 {
+            identifiers = formattingIdentifiersSpanningRange(selectedRange)
+        } else {
+            identifiers = formattingIdentifiersForTypingAttributes()
+        }
+        let formats = identifiers.compactMap { formatStringMap[$0] }
+        onActiveFormatsChange(["formats": formats])
+    }
     func propagateSelectionChanges() {
         guard let onSelectionChange = onSelectionChange else {
             return
@@ -793,9 +816,10 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
         guard isInsertingDictationResult == false else {
             return
         }
-        
+
         propagateContentChanges()
         updatePlaceholderVisibility()
+        propagateFormatChanges()
         //Necessary to send height information to JS after pasting text.
         textView.setNeedsLayout()
     }

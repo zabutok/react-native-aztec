@@ -101,7 +101,6 @@ public class ReactAztecText extends AztecText {
             put(AztecTextFormat.FORMAT_STRIKETHROUGH, "strikethrough");
             put(AztecTextFormat.FORMAT_UNDERLINE, "underline");
             put(AztecTextFormat.FORMAT_MARK, "mark");
-            put(AztecTextFormat.FORMAT_HORIZONTAL_RULE, "hr");
         }
     };
 
@@ -219,7 +218,7 @@ public class ReactAztecText extends AztecText {
                 blockFormatter.toggleQuote();
                 break;
             case FORMAT_HORIZONTAL_RULE:
-                lineBlockFormatter.applyHorizontalRule(true);
+                lineBlockFormatter.applyHorizontalRule(false);
                 break;
         }
 
