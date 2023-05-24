@@ -102,7 +102,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
     /// This helps to avoid propagating that unwanted empty string to RN. (Solving #606)
     /// on `textViewDidChange` and `textViewDidChangeSelection`
     private var isInsertingDictationResult = false
-    
+
     // MARK: - Font
 
     /// Flag to enable using the defaultFont in Aztec for specific blocks
@@ -120,7 +120,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
     /// Font weight for all contents.  Once this is set, it will always override the font weight for all of its
     /// contents, regardless of what HTML is provided to Aztec.
     private var fontWeight: String? = nil
-    
+
     /// Line height for all contents.  Once this is set, it will always override the font size for all of its
     /// contents, regardless of what HTML is provided to Aztec.
     private var lineHeight: CGFloat? = nil
@@ -303,21 +303,6 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
         return imagesURLs
     }
 
-    override func paste(_ sender: Any?) {
-        let pasteboard = UIPasteboard.general
-        let text = readText(from: pasteboard) ?? ""
-        let html = readHTML(from: pasteboard) ?? ""
-        let imagesURLs = readImages(from: pasteboard)
-        sendPasteCallback(text: text, html: html, imagesURLs: imagesURLs);
-    }
-
-    override func pasteWithoutFormatting(_ sender: Any?) {
-        let pasteboard = UIPasteboard.general
-        let text = readText(from: pasteboard) ?? ""
-        let imagesURLs = readImages(from: pasteboard)
-        sendPasteCallback(text: text, html: "", imagesURLs: imagesURLs);
-    }
-
     private func sendPasteCallback(text: String, html: String, imagesURLs: [String]) {
         let start = selectedRange.location
         let end = selectedRange.location + selectedRange.length
@@ -403,6 +388,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
         return true
     }
 
+
     private func interceptTriggersKeyCodes(_ text: String) {
         guard let keyCodes = triggerKeyCodes,
             keyCodes.count > 0,
@@ -457,7 +443,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
 
         return [name: size]
     }
-    
+
     func packCaretDataForRN(overrideRange: NSRange? = nil) -> [AnyHashable: Any] {
         var range = selectedRange
         if let overrideRange = overrideRange {
@@ -473,7 +459,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
 
         result["selectionStart"] = start
         result["selectionEnd"] = end
-        
+
         if let range = selectedTextRange {
             let caretEndRect = caretRect(for: range.end)
             // Sergio Estevao: Sometimes the carectRect can be invalid so we need to check before sending this to JS.
@@ -634,7 +620,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
         fontWeight = weight
         refreshFont()
     }
-    
+
     @objc func setLineHeight(_ newLineHeight: CGFloat) {
         guard lineHeight != newLineHeight else {
             return
@@ -698,7 +684,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
         let currentFont = font(from: typingAttributes)
         placeholderLabel.font = currentFont
     }
-    
+
     /// This method refreshes the line height.
     private func refreshLineHeight() {
         if let lineHeight = lineHeight {
@@ -712,7 +698,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
             textStorage.addAttribute(NSAttributedString.Key.paragraphStyle, value: style, range: NSMakeRange(0, textStorage.length))
         }
     }
-    
+
     /// This method sets the desired font family
     /// for specific tags.
     private func checkDefaultFontFamily(tag: String) {
@@ -798,7 +784,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
         }
         selectedTextRange = self.textRange(from: beginningOfDocument, to: beginningOfDocument)
     }
-    
+
     func textViewDidChangeSelection(_ textView: UITextView) {
         guard isFirstResponder, isInsertingDictationResult == false else {
             return
