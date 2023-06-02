@@ -393,6 +393,34 @@ public class ReactAztecText extends AztecText {
         updateToolbarButtons(appliedStyles);
     }
 
+    void redo2() {
+        if (!history.redoValid()) {
+            return;
+        }
+        Integer historyCursor = history.getHistoryCursor();
+        if (historyCursor >= history.getHistoryList().size() - 1) {
+            historyCursor = history.getHistoryList().size();
+            history.setHistoryCursor(historyCursor);
+            if (this instanceof AztecText) {
+                super.fromHtml(history.getInputLast(), false);
+            }
+        } else {
+            historyCursor++;
+            history.setHistoryCursor(historyCursor);
+            super.fromHtml(history.getHistoryList().get(historyCursor), false);
+        }
+    }
+
+    void undo2() {
+        if (!history.undoValid()) {
+            return;
+        }
+        Integer historyCursor = history.getHistoryCursor();
+        historyCursor--;
+        history.setHistoryCursor(historyCursor);
+        super.fromHtml(history.getHistoryList().get(historyCursor), false);
+    }
+
     private void updateToolbarButtons(ArrayList<ITextFormat> appliedStyles) {
         // Read the applied styles and get the String list of formatting options
         LinkedList<String> formattingOptions = new LinkedList<>();

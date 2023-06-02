@@ -47,6 +47,8 @@ import com.facebook.react.views.textinput.ReactTextInputManager;
 import com.facebook.react.views.textinput.ScrollWatcher;
 
 import org.wordpress.aztec.Constants;
+import org.wordpress.aztec.History;
+import org.wordpress.aztec.IHistoryListener;
 import org.wordpress.aztec.formatting.LinkFormatter;
 import org.wordpress.aztec.glideloader.GlideImageLoader;
 import org.wordpress.aztec.glideloader.GlideVideoThumbnailLoader;
@@ -127,6 +129,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
                         Color.parseColor("#016087"), true)
         ));
         aztecText.addPlugin(new CssUnderlinePlugin());
+        aztecText.setHistory(new History(true, 30));
         return aztecText;
     }
 
@@ -644,11 +647,11 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
     @Override
     public void receiveCommand(final ReactAztecText parent, int commandType, @Nullable ReadableArray args) {
         if(args.getString(0).equals("undo")) {
-            parent.history.undo(parent);
+            parent.undo2();
             return;
         }
         if(args.getString(0).equals("redo")) {
-            parent.history.redo(parent);
+            parent.redo2();
             return;
         }
         switch (commandType) {
