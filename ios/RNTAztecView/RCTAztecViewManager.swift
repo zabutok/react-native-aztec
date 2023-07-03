@@ -22,8 +22,7 @@ public class RCTAztecViewManager: RCTViewManager {
             defaultMissingImage: UIImage())
 
         view.isScrollEnabled = false
-
-        view.textAttachmentDelegate = attachmentDelegate
+        view.textAttachmentDelegate = view.textViewAttachmentDelegate
         
         if let imageProvider = imageProvider {
             view.registerAttachmentImageProvider(imageProvider)
@@ -40,6 +39,7 @@ public class RCTAztecViewManager: RCTViewManager {
             guard let aztecView = view as? RCTAztecView else {
                 return
             }
+            
             block(aztecView)
         }
     }

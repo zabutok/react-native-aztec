@@ -2,8 +2,9 @@ import Aztec
 import CoreServices
 import Foundation
 import UIKit
+import AVFoundation
 
-class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
+class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate  {
     @objc var onBackspace: RCTBubblingEventBlock? = nil
     @objc var onChange: RCTBubblingEventBlock? = nil
     @objc var onKeyDown: RCTBubblingEventBlock? = nil
@@ -17,6 +18,9 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
     @objc var minWidth: CGFloat = 0
     @objc var maxWidth: CGFloat = 0
     @objc var triggerKeyCodes: NSArray?
+    @objc var headers: NSDictionary?
+    @objc var parameters: NSDictionary?
+    @objc var imageUrl: NSString?
 
     @objc var activeFormats: NSSet? = nil {
         didSet {
@@ -26,6 +30,87 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
             }
         }
     }
+    
+    fileprivate(set) lazy var mediaInserter: MediaInserter = {
+        return MediaInserter(textView: self, attachmentTextAttributes: Constants.mediaMessageAttributes)
+    }()
+    
+    fileprivate(set) lazy var textViewAttachmentDelegate: TextViewAttachmentDelegate = {
+        let presentedViewController = RCTPresentedViewController();
+        let textAttachmentDelegate = TextViewAttachmentDelegateProvider(baseController: presentedViewController!, attachmentTextAttributes: Constants.mediaMessageAttributes)
+        self.textAttachmentDelegate = textAttachmentDelegate
+        return textAttachmentDelegate
+        
+    }()
+    
+    static var tintedMissingImage: UIImage = {
+        if #available(iOS 13.0, *) {
+            return UIImage.init(systemName: "photo")!.withTintColor(.label)
+        } else {
+            // Fallback on earlier versions
+            return UIImage(named: "photo")!
+        }
+    }()
+    struct Constants {
+        static let defaultContentFont   = UIFont.systemFont(ofSize: 14)
+        static let defaultHtmlFont      = UIFont.systemFont(ofSize: 24)
+        static let defaultMissingImage  = tintedMissingImage
+        static let formatBarIconSize    = CGSize(width: 20.0, height: 20.0)
+        static let headers              = [Header.HeaderType.none, .h1, .h2, .h3, .h4, .h5, .h6]
+        static let lists                = [TextList.Style.unordered, .ordered]
+        static let moreAttachmentText   = "more"
+        static let titleInsets          = UIEdgeInsets(top: 5, left: 0, bottom: 5, right: 0)
+        static var mediaMessageAttributes: [NSAttributedString.Key: Any] {
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = .center
+
+            let attributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 15, weight: .semibold),
+                                                            .paragraphStyle: paragraphStyle,
+                                                            .foregroundColor: UIColor.white]
+            return attributes
+        }
+    }
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        // Local variable inserted by Swift 4.2 migrator.
+        let info = convertFromUIImagePickerControllerInfoKeyDictionary(info)
+        let presentedViewController = RCTPresentedViewController();
+        presentedViewController!.dismiss(animated: true, completion: nil)
+//        dismiss(animated: true, completion: nil)
+//        richTextView.becomeFirstResponder()
+        guard let mediaType =  info[convertFromUIImagePickerControllerInfoKey(UIImagePickerController.InfoKey.mediaType)] as? String else {
+            return
+        }
+        let typeImage = kUTTypeImage as String
+        let typeMovie = kUTTypeMovie as String
+
+        switch mediaType {
+        case typeImage:
+            guard let image = info[convertFromUIImagePickerControllerInfoKey(UIImagePickerController.InfoKey.originalImage)] as? UIImage else {
+                return
+            }
+
+            // Insert Image + Reclaim Focus
+            mediaInserter.insertImage(image, imageUrl: imageUrl,headers: headers, parameters: parameters)
+
+        case typeMovie:
+            guard let videoURL = info[convertFromUIImagePickerControllerInfoKey(UIImagePickerController.InfoKey.mediaURL)] as? URL else {
+                return
+            }
+            mediaInserter.insertVideo(videoURL)
+        default:
+            print("Media type not supported: \(mediaType)")
+        }
+    }
+    
+    fileprivate func convertFromUIImagePickerControllerInfoKeyDictionary(_ input: [UIImagePickerController.InfoKey: Any]) -> [String: Any] {
+        return Dictionary(uniqueKeysWithValues: input.map {key, value in (key.rawValue, value)})
+    }
+
+    // Helper function inserted by Swift 4.2 migrator.
+    fileprivate func convertFromUIImagePickerControllerInfoKey(_ input: UIImagePickerController.InfoKey) -> String {
+        return input.rawValue
+    }
+    
     @objc var disableEditingMenu: Bool = false {
         didSet {
             allowsEditingTextAttributes = !disableEditingMenu
@@ -501,7 +586,14 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
         blockUseDefaultFont = useDefaultFont
         refreshFont()
     }
-
+    @objc
+    func setHeadersData(_ data: NSDictionary) {
+        headers = data;
+    }
+//    @objc
+//    func setParameters(_ data: NSDictionary) {
+//        parameters = data;
+//    }
     @objc
     func setContents(_ contents: NSDictionary) {
 
@@ -741,10 +833,13 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
               replaceWithHorizontalRuler(at: emptyRange)
               insertText(" ")
             }
+            case "photo": do {
+              showImagePicker()
+            }
             default: print("Format not recognized")
         }
     }
-
+    
 
     // MARK: - Event Propagation
 
@@ -821,8 +916,172 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate  {
         let text = packForRN(cleanHTML(), withName: "text")
         onBlur?(text)
     }
+    
+    @objc func showImagePicker() {
+        let picker = UIImagePickerController()
+        picker.sourceType = .photoLibrary
+        picker.mediaTypes = UIImagePickerController.availableMediaTypes(for: .photoLibrary) ?? []
+        picker.delegate = self
+        picker.allowsEditing = false
+        picker.navigationBar.isTranslucent = false
+        picker.modalPresentationStyle = .currentContext
+        let presentedViewController = RCTPresentedViewController();
+        presentedViewController!.present(picker, animated: true, completion: nil)
+    }
 }
+class MediaInserter
+{
+    fileprivate var mediaErrorMode = false
 
+    struct MediaProgressKey {
+        static let mediaID = ProgressUserInfoKey("mediaID")
+        static let videoURL = ProgressUserInfoKey("videoURL")
+    }
+    
+    let richTextView: TextView
+
+    var attachmentTextAttributes: [NSAttributedString.Key: Any]
+
+    init(textView: TextView, attachmentTextAttributes: [NSAttributedString.Key: Any]) {
+        self.richTextView = textView
+        self.attachmentTextAttributes = attachmentTextAttributes
+    }
+
+    func insertImage(_ image: UIImage, imageUrl: NSString?, headers: NSDictionary?, parameters: NSDictionary?) {
+
+        let fileURL = image.saveToTemporaryFile()
+        let attachment = richTextView.replaceWithImage(at: richTextView.selectedRange, sourceURL: fileURL, placeHolderImage: image)
+        attachment.size = .full
+        attachment.alignment = ImageAttachment.Alignment.none
+        
+        image.uploadToRemoteServer(richTextView: richTextView, attachment: attachment, imageUrl: imageUrl!, headers: headers, parameters: parameters)
+//        if let attachmentRange = richTextView.textStorage.ranges(forAttachment: attachment).first {
+//            richTextView.setLink(fileURL, inRange: attachmentRange)
+//        }
+        let imageID = attachment.identifier
+        let progress = Progress(parent: nil, userInfo: [MediaProgressKey.mediaID: imageID])
+        progress.totalUnitCount = 100
+
+        Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(MediaInserter.timerFireMethod(_:)), userInfo: progress, repeats: true)
+    }
+
+    func insertVideo(_ videoURL: URL) {
+        let asset = AVURLAsset(url: videoURL, options: nil)
+        let imgGenerator = AVAssetImageGenerator(asset: asset)
+        imgGenerator.appliesPreferredTrackTransform = true
+        guard let cgImage = try? imgGenerator.copyCGImage(at: CMTimeMake(value: 0, timescale: 1), actualTime: nil) else {
+            return
+        }
+        let posterImage = UIImage(cgImage: cgImage)
+        let posterURL = posterImage.saveToTemporaryFile()
+        let attachment = richTextView.replaceWithVideo(at: richTextView.selectedRange, sourceURL: URL(string:"placeholder://")!, posterURL: posterURL, placeHolderImage: posterImage)
+        let mediaID = attachment.identifier
+        let progress = Progress(parent: nil, userInfo: [MediaProgressKey.mediaID: mediaID, MediaProgressKey.videoURL:videoURL])
+        progress.totalUnitCount = 100
+
+        Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(MediaInserter.timerFireMethod(_:)), userInfo: progress, repeats: true)
+    }
+    
+
+    @objc func timerFireMethod(_ timer: Timer) {
+        guard let progress = timer.userInfo as? Progress,
+              let imageId = progress.userInfo[MediaProgressKey.mediaID] as? String,
+              let attachment = richTextView.attachment(withId: imageId)
+        else {
+            timer.invalidate()
+            return
+        }
+        progress.completedUnitCount += 1
+
+        attachment.progress = progress.fractionCompleted
+        if mediaErrorMode && progress.fractionCompleted >= 0.25 {
+            timer.invalidate()
+            let message = NSAttributedString(string: "Upload failed!", attributes: attachmentTextAttributes)
+            attachment.message = message
+            if #available(iOS 13.0, *) {
+                attachment.overlayImage = UIImage(systemName: "arrow.clockwise")
+            } else {
+                // Fallback on earlier versions
+            }
+        }
+        if progress.fractionCompleted >= 1 {
+            timer.invalidate()
+            attachment.progress = nil
+            if let videoAttachment = attachment as? VideoAttachment, let videoURL = progress.userInfo[MediaProgressKey.videoURL] as? URL {
+                videoAttachment.updateURL(videoURL, refreshAsset: false)
+            }
+        }
+        richTextView.refresh(attachment, overlayUpdateOnly: true)
+    }
+
+}
+struct Response: Decodable {
+    let url: URL
+}
+extension UIImage {
+
+    func saveToTemporaryFile() -> URL {
+        let fileName = "\(ProcessInfo.processInfo.globallyUniqueString)_file.jpg"
+
+        guard let data = self.jpegData(compressionQuality: 0.9) else {
+            fatalError("Could not conert image to JPEG.")
+        }
+
+        let fileURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(fileName)
+
+        guard (try? data.write(to: fileURL, options: [.atomic])) != nil else {
+            fatalError("Could not write the image to disk.")
+        }
+
+        return fileURL
+    }
+    
+    
+    func uploadToRemoteServer(richTextView: TextView, attachment: ImageAttachment, imageUrl: NSString, headers: NSDictionary?, parameters: NSDictionary?) {
+        let url = URL(string: imageUrl as String)!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        for (key,value) in headers! {
+            request.setValue(value as! String, forHTTPHeaderField: key as! String)
+        }
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        let fileName = "\(ProcessInfo.processInfo.globallyUniqueString)_file.jpg"
+        guard let data = self.jpegData(compressionQuality: 0.5) else {
+            fatalError("Could not conert image to JPEG.")
+        }
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"story_image[image]\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
+        body.append("\r\n".data(using: .utf8)!)
+        for (key, value) in parameters! {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"story_image[\(key)]\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(value)\r\n".data(using: .utf8)!)
+        }
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        request.httpBody = body
+
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            let str = String(data: data!, encoding: String.Encoding.utf8)
+            let resp: Response = try! JSONDecoder().decode(Response.self, from: data!)
+            
+            DispatchQueue.main.async {
+                if let attachmentRange = richTextView.textStorage.ranges(forAttachment: attachment).first {
+                    richTextView.setLink(resp.url, inRange: attachmentRange)
+                    
+                }
+                attachment.updateURL(resp.url)
+            }
+            
+        }
+        task.resume()
+    }
+}
 // MARK: UITextView Delegate Methods
 //extension RCTAztecView: UITextViewDelegate {
 //
