@@ -191,7 +191,7 @@ private extension TextViewAttachmentDelegateProvider {
 // MARK: - Media attachments actions
 //
 extension TextViewAttachmentDelegateProvider {
-    
+
     func displayActions(in textView: TextView, forAttachment attachment: MediaAttachment, position: CGPoint) {
         let mediaID = attachment.identifier
         let title: String = NSLocalizedString("Media Options", comment: "Title for action sheet with media options.")
@@ -213,21 +213,21 @@ extension TextViewAttachmentDelegateProvider {
         })
         alertController.addAction(removeAction)
 
-        if let imageAttachment = attachment as? ImageAttachment {
-            let detailsAction = UIAlertAction(title:NSLocalizedString("Media Details", comment: "User action to change media details."),
-                                              style: .default,
-                                              handler: { [weak self] (action) in
-                                                self?.displayDetailsForAttachment(in: textView, imageAttachment, position: position)
-            })
-            alertController.addAction(detailsAction)
-        } else if let videoAttachment = attachment as? VideoAttachment, let videoURL = videoAttachment.mediaURL {
-            let detailsAction = UIAlertAction(title:NSLocalizedString("Play Video", comment: "User action to play video."),
-                                              style: .default,
-                                              handler: { [weak self] (action) in
-                                                self?.displayVideoPlayer(for: videoURL)
-            })
-            alertController.addAction(detailsAction)
-        }
+//        if let imageAttachment = attachment as? ImageAttachment {
+//            let detailsAction = UIAlertAction(title:NSLocalizedString("Media Details", comment: "User action to change media details."),
+//                                              style: .default,
+//                                              handler: { [weak self] (action) in
+//                                                self?.displayDetailsForAttachment(in: textView, imageAttachment, position: position)
+//            })
+//            alertController.addAction(detailsAction)
+//        } else if let videoAttachment = attachment as? VideoAttachment, let videoURL = videoAttachment.mediaURL {
+//            let detailsAction = UIAlertAction(title:NSLocalizedString("Play Video", comment: "User action to play video."),
+//                                              style: .default,
+//                                              handler: { [weak self] (action) in
+//                                                self?.displayVideoPlayer(for: videoURL)
+//            })
+//            alertController.addAction(detailsAction)
+//        }
 
         alertController.title = title
         alertController.message = message
