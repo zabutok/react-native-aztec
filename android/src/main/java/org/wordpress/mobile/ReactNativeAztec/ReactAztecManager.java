@@ -130,7 +130,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
         ));
         aztecText.addPlugin(new CssUnderlinePlugin());
         aztecText.setHistory(new History(true, 30));
-        aztecText.setImageGetter(new GlideImageLoader(reactContext));
+        aztecText.setImageGetter(new PicassoImageLoader(reactContext, aztecText));
         return aztecText;
     }
 
