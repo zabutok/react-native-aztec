@@ -15,10 +15,10 @@ import org.wordpress.aztec.AztecText
 import org.wordpress.aztec.Html
 import java.util.*
 
-class PicassoImageLoader(private val context: Context, aztec: AztecText) : Html.ImageGetter {
+class PicassoImageLoader(private val context: Context, aztec: ReactAztecText) : Html.ImageGetter {
 
     private val targets: MutableMap<String, com.squareup.picasso.Target>
-    private val aztec: AztecText
+    private val aztec: ReactAztecText
     init {
         this.targets = ArrayMap<String, Target>()
 
@@ -38,12 +38,16 @@ class PicassoImageLoader(private val context: Context, aztec: AztecText) : Html.
         val target = object : Target {
             override fun onBitmapLoaded(bitmap: Bitmap?, from: Picasso.LoadedFrom?) {
                 bitmap?.density = DisplayMetrics.DENSITY_DEFAULT
-                callbacks.onImageLoaded(BitmapDrawable(context.resources, bitmap))
+                val b = bitmap?.let {
+                    Bitmap.createBitmap(bitmap, 0, 0, it.getWidth(), bitmap.getHeight())
+                }
+                callbacks.onImageLoaded(BitmapDrawable(context.resources, b))
                 targets.remove(source)
                 Timer().schedule(object : TimerTask() {
                     override fun run() {
                         runOnUiThread(java.lang.Runnable {
-                            aztec.refreshText()
+//                            aztec.onContentSizeChange()
+//                            aztec.refreshText()
                         })
                     }
                 }, 1000)
@@ -62,7 +66,6 @@ class PicassoImageLoader(private val context: Context, aztec: AztecText) : Html.
         // add a strong reference to the target until it's called or the view gets destroyed
         targets.put(source, target)
 
-        picasso.load(source).resize(maxWidth, maxWidth).centerInside().onlyScaleDown().into(target)
-
+        picasso.load(source).resize((maxWidth/2.4).toInt(), (maxWidth/2.4).toInt()).centerInside().onlyScaleDown().into(target)
     }
 }

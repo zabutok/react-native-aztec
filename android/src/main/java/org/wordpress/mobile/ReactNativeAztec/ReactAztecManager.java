@@ -1,6 +1,8 @@
 package org.wordpress.mobile.ReactNativeAztec;
 
 
+import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.text.LineBreaker;
@@ -22,6 +24,7 @@ import android.view.Gravity;
 import android.view.View;
 
 import com.facebook.infer.annotation.Assertions;
+import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.JSApplicationIllegalArgumentException;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
@@ -66,7 +69,7 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutShadowNode> {
+public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutShadowNode> implements ActivityEventListener {
 
     public static final String REACT_CLASS = "RCTAztecView";
 
@@ -90,6 +93,12 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
 
     private float mCurrentFontSize = 0;
     private float mCurrentLineHeight = 0;
+
+    private MediaHelper mediaHelper;
+
+    ReadableMap headers;
+    ReadableMap parameters;
+    String imageUrl;
 
     @Nullable private final Consumer<Exception> exceptionLogger;
     @Nullable private final Consumer<String> breadcrumbLogger;
@@ -131,6 +140,8 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
         aztecText.addPlugin(new CssUnderlinePlugin());
         aztecText.setHistory(new History(true, 30));
         aztecText.setImageGetter(new PicassoImageLoader(reactContext, aztecText));
+        mediaHelper = new MediaHelper(reactContext, aztecText, this);
+        reactContext.getReactApplicationContext().addActivityEventListener(this);
         return aztecText;
     }
 
@@ -235,6 +246,21 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
                 setTextfromJS(view, inputMap.getString("text"), inputMap.getMap("selection"));
             }
         }
+    }
+
+    @ReactProp(name = "parameters")
+    public void setParameters(ReactAztecText view, ReadableMap inputMap) {
+        parameters = inputMap;
+    }
+
+    @ReactProp(name = "headers")
+    public void setHeaders(ReactAztecText view, ReadableMap inputMap) {
+        headers = inputMap;
+    }
+
+    @ReactProp(name = "imageUrl")
+    public void setImageUrl(ReactAztecText view, String url) {
+        imageUrl = url;
     }
 
     private void setTextfromJS(ReactAztecText view, String text, @Nullable ReadableMap selection) {
@@ -655,6 +681,10 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
             parent.redo2();
             return;
         }
+        if(args.getString(0).equals("photo")) {
+            mediaHelper.onPhotosMediaOptionSelected();
+            return;
+        }
         switch (commandType) {
             case TOGGLE_TEXT_INPUT_FORMAT: {
                 parent.toggleFormat(args.getString(0));
@@ -668,6 +698,8 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
                         getClass().getSimpleName()));
         }
     }
+
+
     @Override
     public void receiveCommand(final ReactAztecText parent, String commandType, @Nullable ReadableArray args) {
 
@@ -731,6 +763,17 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
                     (int) update.getPaddingRight(),
                     (int) update.getPaddingBottom());
         }
+    }
+
+    @Override
+    public void onActivityResult(Activity activity, final int requestCode, final int resultCode, final Intent data) {
+        mediaHelper.onActivityResult(requestCode,resultCode, data);
+    }
+
+
+    @Override
+    public void onNewIntent(Intent intent) {
+
     }
 
     private class AztecTextWatcher implements TextWatcher {

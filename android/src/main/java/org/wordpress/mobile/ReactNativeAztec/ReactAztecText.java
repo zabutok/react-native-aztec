@@ -66,7 +66,7 @@ public class ReactAztecText extends AztecText {
     private @Nullable ArrayList<TextWatcher> mListeners;
     private @Nullable InlineFormatter inlineFormatter;
 
-    private @Nullable LineBlockFormatter lineBlockFormatter;
+    @Nullable LineBlockFormatter lineBlockFormatter;
     private @Nullable TextWatcherDelegator mTextWatcherDelegator;
     private @Nullable ContentSizeWatcher mContentSizeWatcher;
     private @Nullable ScrollWatcher mScrollWatcher;
@@ -171,7 +171,6 @@ public class ReactAztecText extends AztecText {
                                }
         );
     }
-
     void toggleFormat(String textFormat) {
         String name = AztecTextFormat.FORMAT_HORIZONTAL_RULE.getName();
         history.beforeTextChanged(this);
@@ -364,7 +363,7 @@ public class ReactAztecText extends AztecText {
         mContentSizeWatcher = contentSizeWatcher;
     }
 
-    private void onContentSizeChange() {
+    public void onContentSizeChange() {
         if (mContentSizeWatcher != null) {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override

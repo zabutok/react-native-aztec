@@ -31,6 +31,7 @@ class TextViewAttachmentDelegateProvider: NSObject, TextViewAttachmentDelegate {
             downloadImage(from: posterURL, success: success, onFailure: failure)
         case let imageAttachment as ImageAttachment:
             if let imageURL = imageAttachment.url {
+                imageAttachment.alignment = ImageAttachment.Alignment.center
                 downloadImage(from: imageURL, success: success, onFailure: failure)
             }
         default:
@@ -175,11 +176,10 @@ private extension TextViewAttachmentDelegateProvider {
                     return
                 }
 
-                guard error == nil, let data = data, let image = UIImage(data: data, scale: UIScreen.main.scale) else {
+                guard error == nil, let data = data, let image = UIImage(data: data) else {
                     failure()
                     return
                 }
-
                 success(image)
             }
         }

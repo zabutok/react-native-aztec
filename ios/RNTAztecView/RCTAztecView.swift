@@ -783,7 +783,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerD
             let attributeString = NSMutableAttributedString(string: self.text)
             let style = NSMutableParagraphStyle()
             let currentFontSize = fontSize ?? defaultFont.pointSize
-            let lineSpacing = ((currentFontSize * lineHeight) / UIScreen.main.scale) - (currentFontSize / lineHeight) / 2
+            let lineSpacing = ((currentFontSize * lineHeight)) - (currentFontSize / lineHeight) / 2
 
             style.lineSpacing = lineSpacing
             defaultParagraphStyle.regularLineSpacing = lineSpacing
@@ -938,11 +938,11 @@ class MediaInserter
         static let videoURL = ProgressUserInfoKey("videoURL")
     }
     
-    let richTextView: TextView
+    let richTextView: RCTAztecView
 
     var attachmentTextAttributes: [NSAttributedString.Key: Any]
 
-    init(textView: TextView, attachmentTextAttributes: [NSAttributedString.Key: Any]) {
+    init(textView: RCTAztecView, attachmentTextAttributes: [NSAttributedString.Key: Any]) {
         self.richTextView = textView
         self.attachmentTextAttributes = attachmentTextAttributes
     }
@@ -952,12 +952,9 @@ class MediaInserter
         let fileURL = image.saveToTemporaryFile()
         let attachment = richTextView.replaceWithImage(at: richTextView.selectedRange, sourceURL: fileURL, placeHolderImage: image)
         attachment.size = .full
-        attachment.alignment = ImageAttachment.Alignment.none
+        attachment.alignment = ImageAttachment.Alignment.center
         
         image.uploadToRemoteServer(richTextView: richTextView, attachment: attachment, imageUrl: imageUrl!, headers: headers, parameters: parameters)
-//        if let attachmentRange = richTextView.textStorage.ranges(forAttachment: attachment).first {
-//            richTextView.setLink(fileURL, inRange: attachmentRange)
-//        }
         let imageID = attachment.identifier
         let progress = Progress(parent: nil, userInfo: [MediaProgressKey.mediaID: imageID])
         progress.totalUnitCount = 100
@@ -1006,6 +1003,7 @@ class MediaInserter
         }
         if progress.fractionCompleted >= 1 {
             timer.invalidate()
+            self.richTextView.updateContentSizeInRN()
             attachment.progress = nil
             if let videoAttachment = attachment as? VideoAttachment, let videoURL = progress.userInfo[MediaProgressKey.videoURL] as? URL {
                 videoAttachment.updateURL(videoURL, refreshAsset: false)
@@ -1017,6 +1015,7 @@ class MediaInserter
 }
 struct Response: Decodable {
     let url: URL
+    let id: Int
 }
 extension UIImage {
 
@@ -1037,7 +1036,7 @@ extension UIImage {
     }
     
     
-    func uploadToRemoteServer(richTextView: TextView, attachment: ImageAttachment, imageUrl: NSString, headers: NSDictionary?, parameters: NSDictionary?) {
+    func uploadToRemoteServer(richTextView: RCTAztecView, attachment: ImageAttachment, imageUrl: NSString, headers: NSDictionary?, parameters: NSDictionary?) {
         let url = URL(string: imageUrl as String)!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -1075,7 +1074,11 @@ extension UIImage {
                     richTextView.setLink(resp.url, inRange: attachmentRange)
                     
                 }
+                attachment.extraAttributes["data-image_id"] = .string("\(resp.id)")
+                attachment.extraAttributes["loading"] = .string("true")
                 attachment.updateURL(resp.url)
+                richTextView.insertText("\n")
+                richTextView.updateContentSizeInRN()
             }
             
         }
