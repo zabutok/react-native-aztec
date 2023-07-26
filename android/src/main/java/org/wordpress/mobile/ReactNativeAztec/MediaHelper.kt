@@ -1,37 +1,42 @@
 package org.wordpress.mobile.ReactNativeAztec
 
+import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.app.ActivityCompat
 import com.facebook.react.bridge.UiThreadUtil
+import com.facebook.react.modules.core.PermissionAwareActivity
+import com.facebook.react.modules.core.PermissionListener
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import org.json.JSONObject
 import org.wordpress.android.util.AppLog
 import org.wordpress.android.util.ImageUtils
-import org.wordpress.android.util.PermissionUtils
 import org.wordpress.aztec.AztecAttributes
 import org.wordpress.aztec.AztecText
-import org.wordpress.aztec.AztecTextFormat
 import org.xml.sax.Attributes
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.util.*
+import java.util.concurrent.Callable
 
 
 class MediaHelper(private val context: Context, aztec: AztecText, aztecManager: ReactAztecManager) {
@@ -67,32 +72,71 @@ class MediaHelper(private val context: Context, aztec: AztecText, aztecManager: 
         }
         return null
     }
-    fun onPhotosMediaOptionSelected() {
-        if (PermissionUtils.checkAndRequestStoragePermission(getActivity(context), MEDIA_PHOTOS_PERMISSION_REQUEST_CODE)) {
-            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-            intent.addCategory(Intent.CATEGORY_OPENABLE)
-            intent.type = "image/*"
+    private fun permissionsCheck(
+        activity: Activity,
+        requiredPermissions: List<String>,
+        callback: Callable<Void?>
+    ) {
+        val missingPermissions: MutableList<String> = ArrayList()
+        val supportedPermissions: MutableList<String> = ArrayList(requiredPermissions)
 
-            try {
-                getActivity(context)?.startActivityForResult(intent, REQUEST_MEDIA_PHOTO)
-            } catch (exception: ActivityNotFoundException) {
-                AppLog.e(AppLog.T.EDITOR, exception.message)
+        // android 11 introduced scoped storage, and WRITE_EXTERNAL_STORAGE no longer works there
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+            supportedPermissions.remove(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+        for (permission in supportedPermissions) {
+            val status = ActivityCompat.checkSelfPermission(activity, permission)
+            if (status != PackageManager.PERMISSION_GRANTED) {
+                missingPermissions.add(permission)
             }
         }
-//        if (PermissionUtils.checkAndRequestStoragePermission(getActivity(context), MEDIA_PHOTOS_PERMISSION_REQUEST_CODE)) {
-//            val intent = Intent(Intent.ACTION_GET_CONTENT)
-//            intent.addCategory(Intent.CATEGORY_OPENABLE)
-//            intent.type = "image/*"
-//            val mimetypes = arrayOf("image/jpeg", "image/png")
-//            intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes)
-//            try {
-//                val chooserIntent = Intent.createChooser(intent, "Pick an image");
-//                getActivity(context)?.startActivityForResult(chooserIntent, IMAGE_PICKER_REQUEST);
-//                //getActivity(context)?.startActivityForResult(intent, IMAGE_PICKER_REQUEST)
-//            } catch (exception: ActivityNotFoundException) {
-//                AppLog.e(AppLog.T.EDITOR, exception.message)
-//            }
-//        }
+        if (!missingPermissions.isEmpty()) {
+            (activity as PermissionAwareActivity).requestPermissions(missingPermissions.toTypedArray<String>(),
+                1,
+                PermissionListener { requestCode, permissions, grantResults ->
+                    if (requestCode == 1) {
+                        for (permissionIndex in permissions.indices) {
+                            val permission = permissions[permissionIndex]
+                            val grantResult = grantResults[permissionIndex]
+                            if (grantResult == PackageManager.PERMISSION_DENIED) {
+                                return@PermissionListener true
+                            }
+                        }
+                        try {
+                            callback.call()
+                        } catch (e: java.lang.Exception) {
+                            //promise.reject(PickerModule.E_CALLBACK_ERROR, "Unknown error", e)
+                        }
+                    }
+                    true
+                })
+            return
+        }
+
+        // all permissions granted
+        try {
+            callback.call()
+        } catch (e: java.lang.Exception) {
+        }
+    }
+    fun onPhotosMediaOptionSelected() {
+        getActivity(context)?.let {
+            permissionsCheck(
+                it,
+                listOf<String>(if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) Manifest.permission.WRITE_EXTERNAL_STORAGE else Manifest.permission.READ_MEDIA_IMAGES),
+                Callable<Void?> {
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                    intent.addCategory(Intent.CATEGORY_OPENABLE)
+                    intent.type = "image/*"
+
+                    try {
+                        getActivity(context)?.startActivityForResult(intent, REQUEST_MEDIA_PHOTO)
+                    } catch (exception: ActivityNotFoundException) {
+                        AppLog.e(AppLog.T.EDITOR, exception.message)
+                    }
+                    null
+                })
+        }
     }
 
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -232,18 +276,22 @@ class MediaHelper(private val context: Context, aztec: AztecText, aztecManager: 
             override fun onResponse(call: Call, response: Response) {
                 Log.i(TAG, "Image uploaded successfully")
                 UiThreadUtil.runOnUiThread(Runnable {
-                    val jsonData = response.body?.string()
-                    val Jobject = JSONObject(jsonData)
-                    var url = Jobject.getString("url")
-                    var id = Jobject.getString("id")
-                    attrs.setValue("src", url)
-                    attrs.setValue("data-image_id", id)
-                    attrs.setValue("loading", "true")
-                    aztec.updateElementAttributes(predicate, attrs)
-                    progress = 10000
-                    aztec.setOverlayLevel(predicate, 1, progress)
-                    aztec.refreshText()
-                    aztec.blockFormatter.toggleQuote()
+                    try {
+                        val jsonData = response.body?.string()
+                        val Jobject = JSONObject(jsonData)
+                        var url = Jobject.getString("url")
+                        var id = Jobject.getString("id")
+                        attrs.setValue("src", url)
+                        attrs.setValue("data-image_id", id)
+                        attrs.setValue("loading", "true")
+                        aztec.updateElementAttributes(predicate, attrs)
+                        progress = 10000
+                        aztec.setOverlayLevel(predicate, 1, progress)
+                        aztec.refreshText()
+                        aztec.blockFormatter.toggleQuote()
+                    } catch (exception: Exception) {
+                        AppLog.e(AppLog.T.EDITOR, exception.message)
+                    }
                     //aztec.blockFormatter.toggleQuote()
                 })
 
