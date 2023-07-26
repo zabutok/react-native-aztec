@@ -30,19 +30,19 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerD
             }
         }
     }
-    
+
     fileprivate(set) lazy var mediaInserter: MediaInserter = {
         return MediaInserter(textView: self, attachmentTextAttributes: Constants.mediaMessageAttributes)
     }()
-    
+
     fileprivate(set) lazy var textViewAttachmentDelegate: TextViewAttachmentDelegate = {
         let presentedViewController = RCTPresentedViewController();
         let textAttachmentDelegate = TextViewAttachmentDelegateProvider(baseController: presentedViewController!, attachmentTextAttributes: Constants.mediaMessageAttributes)
         self.textAttachmentDelegate = textAttachmentDelegate
         return textAttachmentDelegate
-        
+
     }()
-    
+
     static var tintedMissingImage: UIImage = {
         if #available(iOS 13.0, *) {
             return UIImage.init(systemName: "photo")!.withTintColor(.label)
@@ -101,7 +101,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerD
             print("Media type not supported: \(mediaType)")
         }
     }
-    
+
     fileprivate func convertFromUIImagePickerControllerInfoKeyDictionary(_ input: [UIImagePickerController.InfoKey: Any]) -> [String: Any] {
         return Dictionary(uniqueKeysWithValues: input.map {key, value in (key.rawValue, value)})
     }
@@ -110,7 +110,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerD
     fileprivate func convertFromUIImagePickerControllerInfoKey(_ input: UIImagePickerController.InfoKey) -> String {
         return input.rawValue
     }
-    
+
     @objc var disableEditingMenu: Bool = false {
         didSet {
             allowsEditingTextAttributes = !disableEditingMenu
@@ -839,7 +839,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerD
             default: print("Format not recognized")
         }
     }
-    
+
 
     // MARK: - Event Propagation
 
@@ -916,7 +916,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerD
         let text = packForRN(cleanHTML(), withName: "text")
         onBlur?(text)
     }
-    
+
     @objc func showImagePicker() {
         let picker = UIImagePickerController()
         picker.sourceType = .photoLibrary
@@ -937,7 +937,7 @@ class MediaInserter
         static let mediaID = ProgressUserInfoKey("mediaID")
         static let videoURL = ProgressUserInfoKey("videoURL")
     }
-    
+
     let richTextView: RCTAztecView
 
     var attachmentTextAttributes: [NSAttributedString.Key: Any]
@@ -953,7 +953,7 @@ class MediaInserter
         let attachment = richTextView.replaceWithImage(at: richTextView.selectedRange, sourceURL: fileURL, placeHolderImage: image)
         attachment.size = .full
         attachment.alignment = ImageAttachment.Alignment.center
-        
+
         image.uploadToRemoteServer(richTextView: richTextView, attachment: attachment, imageUrl: imageUrl!, headers: headers, parameters: parameters)
         let imageID = attachment.identifier
         let progress = Progress(parent: nil, userInfo: [MediaProgressKey.mediaID: imageID])
@@ -978,7 +978,7 @@ class MediaInserter
 
         Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(MediaInserter.timerFireMethod(_:)), userInfo: progress, repeats: true)
     }
-    
+
 
     @objc func timerFireMethod(_ timer: Timer) {
         guard let progress = timer.userInfo as? Progress,
@@ -1034,13 +1034,13 @@ extension UIImage {
 
         return fileURL
     }
-    
-    
+
+
     func uploadToRemoteServer(richTextView: RCTAztecView, attachment: ImageAttachment, imageUrl: NSString, headers: NSDictionary?, parameters: NSDictionary?) {
         let url = URL(string: imageUrl as String)!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        
+
         for (key,value) in headers! {
             request.setValue(value as! String, forHTTPHeaderField: key as! String)
         }
@@ -1068,19 +1068,20 @@ extension UIImage {
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             let str = String(data: data!, encoding: String.Encoding.utf8)
             let resp: Response = try! JSONDecoder().decode(Response.self, from: data!)
-            
+
             DispatchQueue.main.async {
                 if let attachmentRange = richTextView.textStorage.ranges(forAttachment: attachment).first {
                     richTextView.setLink(resp.url, inRange: attachmentRange)
-                    
+
                 }
                 attachment.extraAttributes["data-image_id"] = .string("\(resp.id)")
                 attachment.extraAttributes["loading"] = .string("true")
+                attachment.extraAttributes["react"] = .string("true")
                 attachment.updateURL(resp.url)
                 richTextView.insertText("\n")
                 richTextView.updateContentSizeInRN()
             }
-            
+
         }
         task.resume()
     }

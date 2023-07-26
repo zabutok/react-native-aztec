@@ -284,6 +284,7 @@ class MediaHelper(private val context: Context, aztec: AztecText, aztecManager: 
                         attrs.setValue("src", url)
                         attrs.setValue("data-image_id", id)
                         attrs.setValue("loading", "true")
+                        attrs.setValue("react", "true")
                         aztec.updateElementAttributes(predicate, attrs)
                         progress = 10000
                         aztec.setOverlayLevel(predicate, 1, progress)
