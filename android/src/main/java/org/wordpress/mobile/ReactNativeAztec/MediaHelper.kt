@@ -39,7 +39,7 @@ import java.util.*
 import java.util.concurrent.Callable
 
 
-class MediaHelper(private val context: Context, aztec: AztecText, aztecManager: ReactAztecManager) {
+class MediaHelper(private val context: Context, aztec: ReactAztecText, aztecManager: ReactAztecManager) {
     private val MEDIA_CAMERA_PHOTO_PERMISSION_REQUEST_CODE: Int = 1001
     private val MEDIA_CAMERA_VIDEO_PERMISSION_REQUEST_CODE: Int = 1002
     private val MEDIA_PHOTOS_PERMISSION_REQUEST_CODE: Int = 1003
@@ -53,7 +53,7 @@ class MediaHelper(private val context: Context, aztec: AztecText, aztecManager: 
     private var progress = 0
     private lateinit var mediaFile: String
     private lateinit var mediaPath: String
-    private val aztec: AztecText
+    private val aztec: ReactAztecText
     private lateinit var attrs: AztecAttributes
     private val aztecManager: ReactAztecManager
     init {
@@ -227,6 +227,7 @@ class MediaHelper(private val context: Context, aztec: AztecText, aztecManager: 
                 }
                 var test = attrs
                 aztec.updateElementAttributes(predicate, attrs)
+                aztec.triggerTextChange()
             }
         }
 
@@ -288,8 +289,10 @@ class MediaHelper(private val context: Context, aztec: AztecText, aztecManager: 
                         aztec.updateElementAttributes(predicate, attrs)
                         progress = 10000
                         aztec.setOverlayLevel(predicate, 1, progress)
-                        aztec.refreshText()
-                        aztec.blockFormatter.toggleQuote()
+
+//                        aztec.incrementAndGetEventCounter()
+//                        aztec.refreshText()
+                        aztec.triggerTextChange()
                     } catch (exception: Exception) {
                         AppLog.e(AppLog.T.EDITOR, exception.message)
                     }

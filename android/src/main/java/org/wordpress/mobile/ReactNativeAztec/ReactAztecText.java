@@ -507,7 +507,19 @@ public class ReactAztecText extends AztecText {
 
         return ++mNativeEventCount;
     }
-
+    public void triggerTextChange() {
+        int currentEventCount = incrementAndGetEventCounter();
+        ReactContext reactContext = (ReactContext) getContext();
+        EventDispatcher eventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+        // The event that contains the event counter and updates it must be sent first.
+        // TODO: t7936714 merge these events
+        eventDispatcher.dispatchEvent(
+                new AztecReactTextChangedEvent(
+                        getId(),
+                        toHtml(getText(), false),
+                        currentEventCount,
+                        null));
+    }
     @Override
     public void addTextChangedListener(TextWatcher watcher) {
         if (mListeners == null) {
