@@ -1066,6 +1066,11 @@ extension UIImage {
         request.httpBody = body
 
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            if((error) != nil) {
+                attachment.updateURL(nil)
+                //todo: uploadImage Error event here
+                return
+            }
             let str = String(data: data!, encoding: String.Encoding.utf8)
             let resp: Response = try! JSONDecoder().decode(Response.self, from: data!)
 
