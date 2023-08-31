@@ -23,10 +23,13 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
 
 import com.facebook.infer.annotation.Assertions;
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.events.EventDispatcher;
+import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.facebook.react.views.textinput.ContentSizeWatcher;
 import com.facebook.react.views.textinput.ReactTextInputLocalData;
 import com.facebook.react.views.textinput.ScrollWatcher;
@@ -170,6 +173,16 @@ public class ReactAztecText extends AztecText {
                                    }
                                }
         );
+    }
+
+    public void onReceiveNativeEvent(String key, String msg, String eventName) {
+        WritableMap event = Arguments.createMap();
+        event.putString(key, msg);
+        ReactContext reactContext = (ReactContext) getContext();
+        reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                getId(),
+                eventName,
+                event);
     }
     void toggleFormat(String textFormat) {
         String name = AztecTextFormat.FORMAT_HORIZONTAL_RULE.getName();
