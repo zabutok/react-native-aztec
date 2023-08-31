@@ -294,6 +294,8 @@ class MediaHelper(private val context: Context, aztec: ReactAztecText, aztecMana
 //                        aztec.refreshText()
                         aztec.triggerTextChange()
                     } catch (exception: Exception) {
+                        attrs.setValue("src", "")
+                        aztec.onReceiveNativeEvent("response", exception.message, "onImageUploadError")
                         AppLog.e(AppLog.T.EDITOR, exception.message)
                     }
                     //aztec.blockFormatter.toggleQuote()

@@ -20,6 +20,7 @@ RCT_EXPORT_VIEW_PROPERTY(activeFormats, NSSet)
 RCT_EXPORT_VIEW_PROPERTY(onActiveFormatsChange, RCTBubblingEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onActiveFormatAttributesChange, RCTBubblingEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onImagePicked, RCTBubblingEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onImageUploadError, RCTBubblingEventBlock)
 
 RCT_EXPORT_VIEW_PROPERTY(placeholder, NSString)
 RCT_EXPORT_VIEW_PROPERTY(placeholderTextColor, UIColor)

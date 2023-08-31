@@ -12,6 +12,7 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerD
     @objc var onFocus: RCTBubblingEventBlock? = nil
     @objc var onBlur: RCTBubblingEventBlock? = nil
     @objc var onPaste: RCTBubblingEventBlock? = nil
+    @objc var onImageUploadError: RCTBubblingEventBlock? = nil
     @objc var onContentSizeChange: RCTBubblingEventBlock? = nil
     @objc var onSelectionChange: RCTBubblingEventBlock? = nil
     @objc var onActiveFormatsChange: RCTBubblingEventBlock? = nil
@@ -1068,25 +1069,27 @@ extension UIImage {
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if((error) != nil) {
                 attachment.updateURL(nil)
-                //todo: uploadImage Error event here
+                richTextView.onImageUploadError?(["response": error!])
                 return
             }
             let str = String(data: data!, encoding: String.Encoding.utf8)
-            let resp: Response = try! JSONDecoder().decode(Response.self, from: data!)
-
-            DispatchQueue.main.async {
-                if let attachmentRange = richTextView.textStorage.ranges(forAttachment: attachment).first {
-                    richTextView.setLink(resp.url, inRange: attachmentRange)
-
+            do {
+                let resp: Response = try JSONDecoder().decode(Response.self, from: data!)
+                DispatchQueue.main.async {
+                    if let attachmentRange = richTextView.textStorage.ranges(forAttachment: attachment).first {
+                        richTextView.setLink(resp.url, inRange: attachmentRange)
+                    }
+                    attachment.extraAttributes["data-image_id"] = .string("\(resp.id)")
+                    attachment.extraAttributes["loading"] = .string("true")
+                    attachment.extraAttributes["react"] = .string("true")
+                    attachment.updateURL(resp.url)
+                    richTextView.insertText("\n")
+                    richTextView.updateContentSizeInRN()
                 }
-                attachment.extraAttributes["data-image_id"] = .string("\(resp.id)")
-                attachment.extraAttributes["loading"] = .string("true")
-                attachment.extraAttributes["react"] = .string("true")
-                attachment.updateURL(resp.url)
-                richTextView.insertText("\n")
-                richTextView.updateContentSizeInRN()
+            } catch {
+                attachment.updateURL(nil)
+                richTextView.onImageUploadError?(["response": str!])
             }
-
         }
         task.resume()
     }
