@@ -233,8 +233,7 @@ public class ReactAztecText extends AztecText {
                 lineBlockFormatter.applyHorizontalRule(false);
                 break;
         }
-
-//        contentChangeWatcher.notifyContentChanged()
+        triggerTextChange();
     }
 
     private void forceCaretAtStartOnTakeFocus() {
