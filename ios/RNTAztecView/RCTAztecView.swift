@@ -839,6 +839,9 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerD
             }
             default: print("Format not recognized")
         }
+        updatePlaceholderVisibility()
+        propagateFormatChanges()
+        propagateContentChanges()
     }
 
 
