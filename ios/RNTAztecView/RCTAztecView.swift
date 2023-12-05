@@ -389,6 +389,22 @@ class RCTAztecView: Aztec.TextView, UITextViewDelegate, UIImagePickerControllerD
         return imagesURLs
     }
 
+    override func paste(_ sender: Any?) {
+        super.paste(sender)
+        updatePlaceholderVisibility()
+        propagateFormatChanges()
+        propagateContentChanges()
+    }
+
+    override func pasteWithoutFormatting(_ sender: Any?) {
+        super.pasteWithoutFormatting(sender)
+        updatePlaceholderVisibility()
+        propagateFormatChanges()
+        propagateContentChanges()
+    }
+
+
+
     private func sendPasteCallback(text: String, html: String, imagesURLs: [String]) {
         let start = selectedRange.location
         let end = selectedRange.location + selectedRange.length
