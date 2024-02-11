@@ -25,17 +25,16 @@ import android.view.View;
 
 import com.facebook.infer.annotation.Assertions;
 import com.facebook.react.bridge.ActivityEventListener;
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.JSApplicationIllegalArgumentException;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.common.MapBuilder;
-import com.facebook.react.uimanager.BaseViewManager;
+import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.uimanager.LayoutShadowNode;
 import com.facebook.react.uimanager.PixelUtil;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.facebook.react.uimanager.UIManagerHelper;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.ViewDefaults;
 import com.facebook.react.uimanager.ViewProps;
@@ -54,7 +53,6 @@ import com.facebook.react.views.textinput.ScrollWatcher;
 
 import org.wordpress.aztec.Constants;
 import org.wordpress.aztec.History;
-import org.wordpress.aztec.IHistoryListener;
 import org.wordpress.aztec.formatting.LinkFormatter;
 import org.wordpress.aztec.glideloader.GlideImageLoader;
 import org.wordpress.aztec.glideloader.GlideVideoThumbnailLoader;
@@ -71,10 +69,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+@ReactModule(name = ReactAztecManager.NAME)
+public class ReactAztecManager extends com.aztec.AztecViewManagerSpec<ReactAztecText, LayoutShadowNode> implements ActivityEventListener {
 
-public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutShadowNode> implements ActivityEventListener {
-
-    public static final String REACT_CLASS = "RCTAztecView";
+    public static final String NAME = "AztecView";
 
     private static final int FOCUS_TEXT_INPUT = 1;
     private static final int BLUR_TEXT_INPUT = 2;
@@ -124,7 +122,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
 
     @Override
     public String getName() {
-        return REACT_CLASS;
+        return NAME;
     }
 
     @Override
@@ -235,7 +233,13 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
                 );
     }
 
+    @Override
+    public void setColor(ReactAztecText view, int value) {
+        setColor(view, (Integer)value);
+    }
+
     @ReactProp(name = "text")
+    @Override
     public void setText(ReactAztecText view, ReadableMap inputMap) {
         if (inputMap.hasKey(LINK_TEXT_COLOR_KEY)) {
             int color = Color.parseColor(inputMap.getString(LINK_TEXT_COLOR_KEY));
@@ -257,16 +261,19 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
     }
 
     @ReactProp(name = "parameters")
+    @Override
     public void setParameters(ReactAztecText view, ReadableMap inputMap) {
         parameters = inputMap;
     }
 
     @ReactProp(name = "headers")
+    @Override
     public void setHeaders(ReactAztecText view, ReadableMap inputMap) {
         headers = inputMap;
     }
 
     @ReactProp(name = "imageUrl")
+    @Override
     public void setImageUrl(ReactAztecText view, String url) {
         imageUrl = url;
     }
@@ -342,6 +349,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
     }
 
     @ReactProp(name = "activeFormats", defaultBoolean = false)
+    @Override
     public void setActiveFormats(final ReactAztecText view, @Nullable ReadableArray activeFormats) {
         if (activeFormats != null) {
             String[] activeFormatsArray = new String[activeFormats.size()];
@@ -358,6 +366,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
      The code below was taken from the class ReactTextInputManager
      */
     @ReactProp(name = ViewProps.FONT_SIZE, defaultFloat = ViewDefaults.FONT_SIZE_SP)
+    @Override
     public void setFontSize(ReactAztecText view, float fontSize) {
         float scale = 1;
         boolean isLineHeightSet = mCurrentLineHeight != 0;
@@ -392,6 +401,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
     }
 
     @ReactProp(name = ViewProps.FONT_FAMILY)
+    @Override
     public void setFontFamily(ReactAztecText view, String fontFamily) {
         int style = Typeface.NORMAL;
         if (view.getTypeface() != null) {
@@ -402,6 +412,11 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
                 style,
                 view.getContext().getAssets());
         view.setTypeface(newTypeface);
+    }
+
+    @Override
+    public void setDisableAutocorrection(ReactAztecText view, boolean value) {
+        disableAutocorrection(view, value);
     }
 
     /**
@@ -787,11 +802,12 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
     private class AztecTextWatcher implements TextWatcher {
 
         private EventDispatcher mEventDispatcher;
+
         private ReactAztecText mEditText;
         private String mPreviousText;
 
         public AztecTextWatcher(final ReactContext reactContext, final ReactAztecText aztecText) {
-            mEventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+            mEventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, aztecText.getId());//reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
             mEditText = aztecText;
             mPreviousText = null;
         }
@@ -827,6 +843,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
                 // TODO: t7936714 merge these events
                 mEventDispatcher.dispatchEvent(
                         new AztecReactTextChangedEvent(
+                                UIManagerHelper.getSurfaceId(mEditText),
                                 mEditText.getId(),
                                 mEditText.toHtml(mEditText.getText(), false),
                                 currentEventCount,
@@ -834,6 +851,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
 
                 mEventDispatcher.dispatchEvent(
                         new ReactTextInputEvent(
+                                UIManagerHelper.getSurfaceId(mEditText),
                                 mEditText.getId(),
                                 newText,
                                 oldText,
@@ -899,6 +917,7 @@ public class ReactAztecManager extends BaseViewManager<ReactAztecText, LayoutSha
                 // FIXME: Note the 2 hacks here
                 mEventDispatcher.dispatchEvent(
                         new ReactContentSizeChangedEvent(
+                                UIManagerHelper.getSurfaceId(mReactAztecText),
                                 mReactAztecText.getId(),
                                 PixelUtil.toDIPFromPixel(contentWidth),
                                 PixelUtil.toDIPFromPixel(contentHeight)));

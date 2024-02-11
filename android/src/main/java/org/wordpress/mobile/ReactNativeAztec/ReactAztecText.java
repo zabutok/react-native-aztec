@@ -22,11 +22,13 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
 
+import com.aztec.R;
 import com.facebook.infer.annotation.Assertions;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.facebook.react.uimanager.UIManagerHelper;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.facebook.react.uimanager.events.EventDispatcher;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
@@ -147,7 +149,8 @@ public class ReactAztecText extends AztecText {
 //                new InlineFormatter.CodeStyle(
 //                        styles.getColor(R.styleable.AztecText_codeBackground, 0),
 //                        styles.getFraction(R.styleable.AztecText_codeBackgroundAlpha, 1, 1, 0f),
-//                        styles.getColor(R.styleable.AztecText_codeColor, 0)));
+//                        styles.getColor(R.styleable.AztecText_codeColor, 0)), new InlineFormatter.HighlightStyle(styles.getResourceId(R.styleable.AztecText_codeColor, R.color.grey_lighten_10)));
+//
         inlineFormatter = new InlineFormatter(this, new InlineFormatter.CodeStyle(
                 styles.getColor(R.styleable.AztecText_codeBackground, 0),
                 styles.getFraction(R.styleable.AztecText_codeBackgroundAlpha, 1, 1, 0f),
@@ -522,12 +525,13 @@ public class ReactAztecText extends AztecText {
     public void triggerTextChange() {
         int currentEventCount = incrementAndGetEventCounter();
         ReactContext reactContext = (ReactContext) getContext();
-        EventDispatcher eventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+        EventDispatcher eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, getId());
         // The event that contains the event counter and updates it must be sent first.
         // TODO: t7936714 merge these events
         eventDispatcher.dispatchEvent(
                 new AztecReactTextChangedEvent(
                         getId(),
+                        UIManagerHelper.getSurfaceId(this),
                         toHtml(getText(), false),
                         currentEventCount,
                         null));
