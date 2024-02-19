@@ -1,6 +1,7 @@
 package org.wordpress.mobile.ReactNativeAztec
 
 import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.UIManager
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.events.Event
 import com.facebook.react.uimanager.events.RCTEventEmitter
@@ -11,10 +12,11 @@ import com.facebook.react.uimanager.events.RCTEventEmitter
  */
 class AztecReactTextChangedEvent(
     viewId: Int,
+    surfaceId: Int,
     private val mText: String,
     private val mEventCount: Int,
     private val mMostRecentChar: Char?
-) : Event<AztecReactTextChangedEvent>(viewId) {
+) : Event<AztecReactTextChangedEvent>(surfaceId, viewId) {
 
     override fun getEventName(): String = "topAztecChange"
 

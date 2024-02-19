@@ -82,11 +82,11 @@ public class ReactAztecText extends AztecText {
     private int mEventCountSyncFromJS = 0; //  / each side is responsible for bumping the respective counter.
 
     String lastSentFormattingOptionsEventString = "";
-    boolean shouldHandleOnEnter = false;
+    boolean shouldHandleOnEnter = true;
     boolean shouldHandleOnBackspace = false;
     boolean shouldHandleOnPaste = false;
-    boolean shouldHandleOnSelectionChange = false;
-    boolean shouldHandleActiveFormatsChange = false;
+    boolean shouldHandleOnSelectionChange = true;
+    boolean shouldHandleActiveFormatsChange = true;
 
     boolean shouldDeleteEnter = false;
 
@@ -468,7 +468,7 @@ public class ReactAztecText extends AztecText {
 
         if (shouldHandleActiveFormatsChange) {
             ReactContext reactContext = (ReactContext) getContext();
-            EventDispatcher eventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+            EventDispatcher eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, getId());
             eventDispatcher.dispatchEvent(
                     new ReactAztecFormattingChangeEvent(
                             getId(),
@@ -484,7 +484,7 @@ public class ReactAztecText extends AztecText {
         }
         String content = toHtml(getText(), false);
         ReactContext reactContext = (ReactContext) getContext();
-        EventDispatcher eventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+        EventDispatcher eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, getId());
         eventDispatcher.dispatchEvent(
                 new ReactAztecSelectionChangeEvent(getId(), content, selStart, selEnd, incrementAndGetEventCounter())
         );
@@ -586,7 +586,7 @@ public class ReactAztecText extends AztecText {
         int cursorPositionEnd = firedAfterTextChanged ? selEnd : getSelectionEnd();
         enableTextChangedListener();
         ReactContext reactContext = (ReactContext) getContext();
-        EventDispatcher eventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+        EventDispatcher eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, getId());
         eventDispatcher.dispatchEvent(
                 new ReactAztecEnterEvent(getId(), content, cursorPositionStart, cursorPositionEnd,
                         firedAfterTextChanged, incrementAndGetEventCounter())
@@ -606,7 +606,7 @@ public class ReactAztecText extends AztecText {
         String content = toHtml(getText(), false);
         enableTextChangedListener();
         ReactContext reactContext = (ReactContext) getContext();
-        EventDispatcher eventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+        EventDispatcher eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, getId());
         // TODO: isRTL? Should be passed here?
         eventDispatcher.dispatchEvent(
                 new ReactAztecBackspaceEvent(getId(), content, cursorPositionStart, cursorPositionEnd)
@@ -650,8 +650,7 @@ public class ReactAztecText extends AztecText {
         int cursorPositionEnd = getSelectionEnd();
         enableTextChangedListener();
         ReactContext reactContext = (ReactContext) getContext();
-        EventDispatcher eventDispatcher = reactContext.getNativeModule(UIManagerModule.class)
-                .getEventDispatcher();
+        EventDispatcher eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, getId());
         eventDispatcher.dispatchEvent(new ReactAztecPasteEvent(getId(), content,
                 cursorPositionStart, cursorPositionEnd, text.toString(), html.toString())
         );

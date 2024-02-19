@@ -30,6 +30,11 @@ interface NativeProps extends ViewProps {
   fontSize?: Float;
   fontFamily?: string;
   disableAutocorrection?: boolean;
+  onChange?: DirectEventHandler<Readonly<{}>>
+  onContentSizeChange?: DirectEventHandler<Readonly<{}>>
+  onSelectionChange?: DirectEventHandler<Readonly<{}>>
+  onKeyDown?: DirectEventHandler<Readonly<{}>>
+  onImageUploadError?: DirectEventHandler<Readonly<{}>>
 }
 
 export default codegenNativeComponent<NativeProps>('AztecView');

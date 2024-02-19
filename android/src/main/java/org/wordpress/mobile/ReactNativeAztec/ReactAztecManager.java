@@ -176,6 +176,11 @@ public class ReactAztecManager extends com.aztec.AztecViewManagerSpec<ReactAztec
                         MapBuilder.of(
                                 "phasedRegistrationNames",
                                 MapBuilder.of("bubbled", "onActiveFormatsChange")))
+//                .put(
+//                        "topContentSizeChange2",
+//                        MapBuilder.of(
+//                                "phasedRegistrationNames",
+//                                MapBuilder.of("bubbled", "onContentSizeChange")))
                 .put(
                         "onImageUploadError",
                         MapBuilder.of(
@@ -258,6 +263,8 @@ public class ReactAztecManager extends com.aztec.AztecViewManagerSpec<ReactAztec
                 setTextfromJS(view, inputMap.getString("text"), inputMap.getMap("selection"));
             }
         }
+
+        view.setContentSizeWatcher(new AztecContentSizeWatcher(view));
     }
 
     @ReactProp(name = "parameters")
@@ -632,16 +639,16 @@ public class ReactAztecManager extends com.aztec.AztecViewManagerSpec<ReactAztec
         }
     }
 
-    @ReactProp(name = "onContentSizeChange", defaultBoolean = false)
+    @ReactProp(name = "onContentSizeChange", defaultBoolean = true)
     public void setOnContentSizeChange(final ReactAztecText view, boolean onContentSizeChange) {
-        if (onContentSizeChange) {
-            view.setContentSizeWatcher(new AztecContentSizeWatcher(view));
-        } else {
-            view.setContentSizeWatcher(null);
-        }
+//        if (onContentSizeChange) {
+//            view.setContentSizeWatcher(new AztecContentSizeWatcher(view));
+//        } else {
+//            view.setContentSizeWatcher(null);
+//        }
     }
 
-    @ReactProp(name = "onSelectionChange", defaultBoolean = false)
+    @ReactProp(name = "onSelectionChange", defaultBoolean = true)
     public void setOnSelectionChange(final ReactAztecText view, boolean onSelectionChange) {
         view.shouldHandleOnSelectionChange = onSelectionChange;
     }
@@ -655,7 +662,7 @@ public class ReactAztecManager extends com.aztec.AztecViewManagerSpec<ReactAztec
         }
     }
 
-    @ReactProp(name = "onEnter", defaultBoolean = false)
+    @ReactProp(name = "onEnter", defaultBoolean = true)
     public void setOnEnterHandling(final ReactAztecText view, boolean onEnterHandling) {
         view.shouldHandleOnEnter = onEnterHandling;
     }
@@ -752,7 +759,7 @@ public class ReactAztecManager extends com.aztec.AztecViewManagerSpec<ReactAztec
         aztecText.setOnFocusChangeListener(
                 new View.OnFocusChangeListener() {
                     public void onFocusChange(View v, boolean hasFocus) {
-                        EventDispatcher eventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+                        EventDispatcher eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, aztecText.getId());
                         final ReactAztecText editText = (ReactAztecText)v;
                         if (hasFocus) {
                             eventDispatcher.dispatchEvent(
@@ -843,8 +850,8 @@ public class ReactAztecManager extends com.aztec.AztecViewManagerSpec<ReactAztec
                 // TODO: t7936714 merge these events
                 mEventDispatcher.dispatchEvent(
                         new AztecReactTextChangedEvent(
-                                UIManagerHelper.getSurfaceId(mEditText),
                                 mEditText.getId(),
+                                UIManagerHelper.getSurfaceId(mEditText),
                                 mEditText.toHtml(mEditText.getText(), false),
                                 currentEventCount,
                                 singleCharacterHasBeenAdded ? s.charAt(start + before) : null));
@@ -894,11 +901,13 @@ public class ReactAztecManager extends com.aztec.AztecViewManagerSpec<ReactAztec
         public AztecContentSizeWatcher(ReactAztecText view) {
             mReactAztecText = view;
             ReactContext reactContext = (ReactContext) mReactAztecText.getContext();
-            mEventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+            mEventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, view.getId());
+            //mEventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
         }
 
-        @Override
+        //@Override
         public void onLayout() {
+            //super.onLayout();
             int contentWidth = mReactAztecText.getWidth();
             int contentHeight = mReactAztecText.getHeight();
 
@@ -935,7 +944,8 @@ public class ReactAztecManager extends com.aztec.AztecViewManagerSpec<ReactAztec
         public AztecScrollWatcher(ReactAztecText editText) {
             mReactAztecText = editText;
             ReactContext reactContext = (ReactContext) editText.getContext();
-            mEventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
+            mEventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, editText.getId());
+            //mEventDispatcher = reactContext.getNativeModule(UIManagerModule.class).getEventDispatcher();
         }
 
         @Override
