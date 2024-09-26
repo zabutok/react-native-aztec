@@ -466,8 +466,7 @@ public class ReactAztecText extends AztecText {
         }
         lastSentFormattingOptionsEventString = newOptionsAsString;
 
-        if (shouldHandleActiveFormatsChange) {
-            ReactContext reactContext = (ReactContext) getContext();
+        ReactContext reactContext = (ReactContext) getContext();
             EventDispatcher eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, getId());
             eventDispatcher.dispatchEvent(
                     new ReactAztecFormattingChangeEvent(
@@ -475,7 +474,6 @@ public class ReactAztecText extends AztecText {
                             formattingOptions.toArray(new String[formattingOptions.size()])
                     )
             );
-        }
     }
 
     private void propagateSelectionChanges(int selStart, int selEnd) {
